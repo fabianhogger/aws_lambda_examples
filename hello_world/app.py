@@ -35,11 +35,10 @@ def lambda_handler(event, context):
 
     #     raise e
   
-      for record in event.get("Records", []):
+    for record in event.get("Records", []):
         s3_info = record.get("s3", {})
         bucket_name = s3_info.get("bucket", {}).get("name")
         object_key = s3_info.get("object", {}).get("key")
-        
         print(f"New file added to S3 bucket: {bucket_name}, key: {object_key}")
 
     return {

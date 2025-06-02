@@ -1,0 +1,38 @@
+{
+  "Records": [
+    {
+      "eventVersion": "2.1",
+      "eventSource": "aws:s3",
+      "awsRegion": "us-east-1",
+      "eventTime": "2025-06-02T12:00:00.000Z",
+      "eventName": "ObjectCreated:Put",
+      "userIdentity": {
+        "principalId": "AWS:EXAMPLE"
+      },
+      "requestParameters": {
+        "sourceIPAddress": "192.0.2.1"
+      },
+      "responseElements": {
+        "x-amz-request-id": "EXAMPLE123456789",
+        "x-amz-id-2": "EXAMPLE123/abcEXAMPLEKEY=="
+      },
+      "s3": {
+        "s3SchemaVersion": "1.0",
+        "configurationId": "sam-app-s3trigger",
+        "bucket": {
+          "name": "my-target-bucket",
+          "ownerIdentity": {
+            "principalId": "EXAMPLE"
+          },
+          "arn": "arn:aws:s3:::my-target-bucket"
+        },
+        "object": {
+          "key": "path/to/my-file.txt",
+          "size": 12345,
+          "eTag": "abc123def456",
+          "sequencer": "0055AED6DCD90281E5"
+        }
+      }
+    }
+  ]
+}
