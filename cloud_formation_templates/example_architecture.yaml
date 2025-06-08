@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: S3 → Lambda → Step Function → Glue Job pipeline
+
+Resources:
+  ##   Step Function Role
+  StepFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StepFunctionPermissions
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - glue:StartJobRun
+                Resource: "*"
+
+  ## 5. Glue Job Script Location
+  GlueScript:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+
+  ## 6. Glue Job Role
+  GlueJobRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+
+  ## 7. Glue Job
+  MyGlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: MyExampleGlueJob
+      Role: !GetAtt GlueJobRole.Arn
+      Command:
+        Name: glueetl
+        ScriptLocation: !Sub s3://${GlueScript}/etl_script.py
+        PythonVersion: 3
+      GlueVersion: "3.0"
+      MaxCapacity: 2.0
+
+  ## 8. Step Function Definition
+  MyStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt StepFunctionRole.Arn
+      DefinitionString: !Sub |
+        {
+          "Comment": "Simple Glue Job Executor",
+          "StartAt": "Start Glue Job",
+          "States": {
+            "Start Glue Job": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::glue:startJobRun.sync",
+              "Parameters": {
+                "JobName": "MyExampleGlueJob"
+              },
+              "End": true
+            }
+          }
+        }
+
+  ## 9. Environment Variable for Lambda
+  LambdaEnv:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /MyStateMachine/Arn
+      Type: String
+      Value: !Ref MyStateMachine
+
+Outputs:
+  DataBucketName:
+    Value: !Ref DataBucket
+  GlueScriptBucket:
+    Value: !Ref GlueScript
