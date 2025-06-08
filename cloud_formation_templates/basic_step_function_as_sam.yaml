@@ -1,0 +1,111 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  StateMachine496a2033:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Definition:
+        Comment: A description of my state machine
+        StartAt: Glue StartJobRun
+        States:
+          Glue StartJobRun:
+            Type: Task
+            Resource: arn:aws:states:::glue:startJobRun
+            Arguments:
+              JobName: ${gluestartJobRun_JobName_d30629f7}
+            Next: Lambda Invoke
+          Lambda Invoke:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Output: '{% $states.result.Payload %}'
+            Arguments:
+              FunctionName: ${lambdainvoke_FunctionName_a3e8d77b}
+              Payload: '{% $states.input %}'
+            Retry:
+              - ErrorEquals:
+                  - Lambda.ServiceException
+                  - Lambda.AWSLambdaException
+                  - Lambda.SdkClientException
+                  - Lambda.TooManyRequestsException
+                IntervalSeconds: 1
+                MaxAttempts: 3
+                BackoffRate: 2
+                JitterStrategy: FULL
+            End: true
+        QueryLanguage: JSONata
+      DefinitionSubstitutions:
+        gluestartJobRun_JobName_d30629f7: Basic Write Job in Glue
+        lambdainvoke_FunctionName_a3e8d77b: >-
+          arn:aws:lambda:eu-central-1:257870304059:function:bootstrapStagingLambdaSetup:$LATEST
+      Name: StateMachine496a2033
+      Type: STANDARD
+      Role:
+        Fn::GetAtt:
+          - Rolee12a973a
+          - Arn
+      Logging:
+        Level: 'OFF'
+        IncludeExecutionData: false
+  Rolee12a973a:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: StepFunctions_IAM_ROLE_PefteiKerma-f5afc89fafd714b7
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      MaxSessionDuration: 3600
+  Policye0a96a34:
+    Type: AWS::IAM::RolePolicy
+    Properties:
+      PolicyName: LambdaInvokeScopedAccessPolicy5a5e4b6c
+      RoleName:
+        Ref: Rolee12a973a
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource:
+              - >-
+                arn:aws:lambda:eu-central-1:257870304059:function:bootstrapStagingLambdaSetup:*
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource:
+              - >-
+                arn:aws:lambda:eu-central-1:257870304059:function:bootstrapStagingLambdaSetup
+  Policye2b05d8b:
+    Type: AWS::IAM::RolePolicy
+    Properties:
+      PolicyName: GlueStartJobRunFullAccessPolicyb4857a17
+      RoleName:
+        Ref: Rolee12a973a
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - glue:StartJobRun
+            Resource:
+              - '*'
+  Policy77391808:
+    Type: AWS::IAM::RolePolicy
+    Properties:
+      PolicyName: XRayAccessPolicy816a139c
+      RoleName:
+        Ref: Rolee12a973a
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+              - xray:GetSamplingRules
+              - xray:GetSamplingTargets
+            Resource:
+              - '*'
